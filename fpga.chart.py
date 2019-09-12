@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-# Description: example netdata python.d module
-# Author: Put your name here (your github login)
-# SPDX-License-Identifier: GPL-3.0-or-later
+# Description: python module to read data from loca FPGAs
+# Author: Luc Vlaming, Ashley Fraser
+# SPDX-License-Identifier: MIT
 
 import time
 
@@ -18,21 +18,6 @@ BYTE_DEFINITION = {
     'options': [None, 'Transfered data', 'MB/sec', 'fpga', 'fpga', 'line'],
     'lines': [['host_to_fpga_byte_count', 'sent to fpga', 'incremental', 1, 1024*1024],
               ['fpga_to_host_byte_count', 'received from fpga', 'incremental', -1, 1024*1024]]
-}
-JOB_DEFINITION = {
-    'options': [None, 'Processed jobs', 'Jobs/sec', 'fpga', 'fpga', 'line'],
-    'lines': [['compression_job_count', 'compressed jobs', 'incremental'],
-              ['decompression_job_count', 'decompressed jobs', 'incremental'],
-              ['decompression_and_filter_job_count', 'decompressed and filtered jobs', 'incremental'],
-              ['filter_job_count', 'filtered jobs', 'incremental']
-             ]
-}
-MAX_DEFINITION = {
-    'options': [None, 'Max outstanding jobs', 'max oustanding', 'fpga', 'fpga', 'line'],
-    'lines': [['max_outstanding_compression_jobs', 'compression', 'absolute'],
-              ['max_outstanding_decompression_and_filter_jobs', 'decompress and filter', 'absolute'],
-              ['max_outstanding_filter_jobs', 'filter', 'absolute']
-             ]
 }
 TEMP_DEFINITION = {
     'options': [None, 'FPGA Temperature', '°C', 'fpga', 'fpga', 'line'],
@@ -56,29 +41,15 @@ class Service(SimpleService):
         for i in range(self.fpga_count):
             name = 'fpga-' + str(i)
             bytes = name + '-bytes'
-            jobs = name + '-jobs'
-            maxes = name + '-max'
             temps = name + '-temp'
             self.order.append(bytes)
-            self.order.append(jobs)
-            self.order.append(maxes)
             self.order.append(temps)
             self.definitions[bytes] = copy.deepcopy(BYTE_DEFINITION)
             self.definitions[bytes]['options'][3] = name
-            self.definitions[jobs] = copy.deepcopy(JOB_DEFINITION)
-            self.definitions[jobs]['options'][3] = name
-            self.definitions[maxes] = copy.deepcopy(MAX_DEFINITION)
-            self.definitions[maxes]['options'][3] = name
             self.definitions[temps] = copy.deepcopy(TEMP_DEFINITION)
             self.definitions[temps]['options'][3] = name
 
             for key in self.definitions[bytes]['lines']:
-                key[0] = name + '-' + key[0]
-                self.keys.append(key[0])
-            for key in self.definitions[jobs]['lines']:
-                key[0] = name + '-' + key[0]
-                self.keys.append(key[0])
-            for key in self.definitions[maxes]['lines']:
                 key[0] = name + '-' + key[0]
                 self.keys.append(key[0])
             for key in self.definitions[temps]['lines']:
