@@ -19,11 +19,6 @@ BYTE_DEFINITION = {
     'lines': [['host_to_fpga_byte_count', 'sent to fpga', 'incremental', 1, 1024*1024],
               ['fpga_to_host_byte_count', 'received from fpga', 'incremental', -1, 1024*1024]]
 }
-TEMP_DEFINITION = {
-    'options': [None, 'FPGA Temperature', '°C', 'fpga', 'fpga', 'line'],
-    'lines': [['temperature', 'Degrees Celcius', 'absolute']
-             ]
-}
 
 class Service(SimpleService):
     def __init__(self, configuration=None, name=None):
@@ -41,18 +36,11 @@ class Service(SimpleService):
         for i in range(self.fpga_count):
             name = 'fpga-' + str(i)
             bytes = name + '-bytes'
-            temps = name + '-temp'
             self.order.append(bytes)
-            self.order.append(temps)
             self.definitions[bytes] = copy.deepcopy(BYTE_DEFINITION)
             self.definitions[bytes]['options'][3] = name
-            self.definitions[temps] = copy.deepcopy(TEMP_DEFINITION)
-            self.definitions[temps]['options'][3] = name
 
             for key in self.definitions[bytes]['lines']:
-                key[0] = name + '-' + key[0]
-                self.keys.append(key[0])
-            for key in self.definitions[temps]['lines']:
                 key[0] = name + '-' + key[0]
                 self.keys.append(key[0])
  
