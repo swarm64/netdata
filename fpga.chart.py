@@ -14,8 +14,6 @@ import re
 
 priority = 90000
 
-FPGA_COUNT = 2
-
 BYTE_DEFINITION = {
     'options': [None, 'Transfered data', 'MB/sec', 'fpga', 'fpga', 'line'],
     'lines': [['host_to_fpga_byte_count', 'sent to fpga', 'incremental', 1, 1024*1024],
@@ -42,10 +40,6 @@ TEMP_DEFINITION = {
              ]
 }
 
-DSNS = [
-    'postgresql://postgres@localhost:5432/postgres'
-]
-
 class Service(SimpleService):
     def __init__(self, configuration=None, name=None):
         SimpleService.__init__(self, configuration=configuration, name=name)
@@ -57,8 +51,9 @@ class Service(SimpleService):
         self.fpga_mapping = dict()
         self.next_fpga = 0
         self.dsn = self.configuration.get('dsn')
+        self.fpga_count = self.configuration.get('fpga_count')
 
-        for i in range(FPGA_COUNT):
+        for i in range(self.fpga_count):
             name = 'fpga-' + str(i)
             bytes = name + '-bytes'
             jobs = name + '-jobs'
@@ -110,25 +105,6 @@ class Service(SimpleService):
 
         return True
 
-    def _parse_fpgainfo(self, cmd, re_string):
-        fpga_info_res = subprocess.check_output(cmd, shell=True)
-        fpga_info_out = fpga_info_res.split(b'\n')
-
-        for line in fpga_info_out:
-            info_line = re.match(re_string, line.decode('UTF-8'))
-            if info_line is not None:
-                return info_line.group(1)
-
-    def _get_fpga_temp(self):
-        FPGA_TEMPERATURE_CMD = "/usr/bin/fpgainfo temp"
-        RE_TEMP_STRING = r'^.*FPGA Core TEMP \s+: (\d+)\,'
-        return _parse_fpgainfo(FPGA_TEMPERATURE_CMD, RE_TEMP_STRING)
-
-    def _get_fpga_power(self):
-        FPGA_POWER_CMD = "/usr/bin/fpgainfo power"
-        RE_POWER_STRING = r'^.*Total Input Power \s+: (\d+)\.'
-        return _parse_fpgainfo(FPGA_POWER_CMD, RE_POWER_STRING)
-
     def get_data(self):
         self._connect(self.dsn)
 
@@ -138,8 +114,6 @@ class Service(SimpleService):
 
         try:
             data = copy.deepcopy(self.default_data)
-            data['temperature'] = self._get_fpga_temp()
-            data['power'] = self._get_fpga_power()
 
 
             with self.conn.cursor() as cursor:
