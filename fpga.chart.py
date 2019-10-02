@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Description: python module to read data from local FPGAs
-# Author: Luc Vlaming, Ashley Fraser
+# Author: Sebastian Dressler, Luc Vlaming, Ashley Fraser
 # SPDX-License-Identifier: MIT
 
 import time
