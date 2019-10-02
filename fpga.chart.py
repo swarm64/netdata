@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-# Description: example netdata python.d module
-# Author: Put your name here (your github login)
-# SPDX-License-Identifier: GPL-3.0-or-later
+# Description: python module to read data from local FPGAs
+# Author: Luc Vlaming, Ashley Fraser
+# SPDX-License-Identifier: MIT
 
 import time
 
