@@ -16,8 +16,6 @@ import os
 priority = 90000
 
 FPGA_COUNT = 2
-XILINX_CMD = '/opt/xilinx/xrt/bin/xbutil'
-INTEL_CMD = '/usr/bin/fpgainfo'
 
 DEFINITIONS = {
     'bytes': {
@@ -62,6 +60,8 @@ class Service(SimpleService):
         self.keys = []
         self.fpga_mapping = dict()
         self.next_fpga = 0
+        self.intel_cmd = self.configuration.get('intel_cmd')
+        self.xilinx_cmd = self.configuration.get('xilinx_cmd')
         self.dsn = self.configuration.get('dsn')
         self.metrics = [ 'bytes', 'jobs', 'max', 'temps', 'powers' ]
 
@@ -69,12 +69,12 @@ class Service(SimpleService):
             name = 'fpga-' + str(i)
 
             for metric in self.metrics:
-                self.init_fpga(metric, name)
+                self.init_fpga_metrics(metric, name)
 
         for key in self.keys:
             self.default_data[key] = 0
 
-    def init_fpga(self, component, name):
+    def init_fpga_metrics(self, component, name):
         component_name = name + '-' + component
         component_definition = DEFINITIONS[component]
         self.order.append(component_name)
@@ -134,40 +134,40 @@ class Service(SimpleService):
 
 
     def _get_intel_fpga_temp(self):
-        FPGA_TEMPERATURE_CMD = INTEL_CMD + " temp"
+        FPGA_TEMPERATURE_CMD = self.intel_cmd + " temp"
         RE_TEMP_STRING = r'^.*FPGA Core TEMP \s+: (\d+)'
         return self._parse_intel_fpgainfo(FPGA_TEMPERATURE_CMD, RE_TEMP_STRING)
 
 
     def _get_xilinx_fpga_temp(self, idx):
-        FPGA_TEMPERATURE_CMD = XILINX_CMD + " query -d " + str(idx)
+        FPGA_TEMPERATURE_CMD = self.xilinx_cmd + " query -d " + str(idx)
         RE_TEMP_STRING = r'FPGA TEMP'
         return self._parse_xilinx_fpgainfo(FPGA_TEMPERATURE_CMD, RE_TEMP_STRING)
 
 
     def _get_intel_fpga_power(self):
-        FPGA_POWER_CMD = INTEL_CMD + " power"
+        FPGA_POWER_CMD = self.intel_cmd + " power"
         RE_POWER_STRING = r'^.*Total Input Power \s+: (\d+)\.'
         return self._parse_intel_fpgainfo(FPGA_POWER_CMD, RE_POWER_STRING)
 
 
     def _get_xilinx_fpga_power(self, idx):
-        FPGA_TEMPERATURE_CMD = XILINX_CMD + " query -d " + str(idx)
+        FPGA_TEMPERATURE_CMD = self.xilinx_cmd + " query -d " + str(idx)
         RE_TEMP_STRING = r'Card Power'
         return self._parse_xilinx_fpgainfo(FPGA_TEMPERATURE_CMD, RE_TEMP_STRING)
 
 
     def _get_fpga_temp(self, idx):
-        if os.path.exists(INTEL_CMD) and os.access(INTEL_CMD, os.X_OK):
+        if os.path.exists(self.intel_cmd) and os.access(self.intel_cmd, os.X_OK):
             return self._get_intel_fpga_temp()
-        if os.path.exists(XILINX_CMD) and os.access(XILINX_CMD, os.X_OK):
+        if os.path.exists(self.xilinx_cmd) and os.access(self.xilinx_cmd, os.X_OK):
             return self._get_xilinx_fpga_temp(idx)
 
 
     def _get_fpga_power(self, idx):
-        if os.path.exists(INTEL_CMD):
+        if os.path.exists(self.intel_cmd):
             return self._get_intel_fpga_power()
-        if os.path.exists(XILINX_CMD):
+        if os.path.exists(self.xilinx_cmd):
             return self._get_xilinx_fpga_power(idx)
 
     def set_fpga_os_status(self, data):
