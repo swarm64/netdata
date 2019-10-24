@@ -105,7 +105,10 @@ class Service(SimpleService):
 
 
     def _parse_intel_fpgainfo(self, cmd, re_string):
-        fpga_info_res = subprocess.check_output(cmd, shell=True)
+        try:
+            fpga_info_res = subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError:
+            return 0
         fpga_info_out = fpga_info_res.split(b'\n')
 
         for line in fpga_info_out:
@@ -133,8 +136,8 @@ class Service(SimpleService):
                 return value_line.group(0)
 
 
-    def _get_intel_fpga_temp(self):
-        FPGA_TEMPERATURE_CMD = self.intel_cmd + " temp"
+    def _get_intel_fpga_temp(self, idx):
+        FPGA_TEMPERATURE_CMD = self.intel_cmd + " temp --device " + str(idx)
         RE_TEMP_STRING = r'^.*FPGA Core TEMP \s+: (\d+)'
         return self._parse_intel_fpgainfo(FPGA_TEMPERATURE_CMD, RE_TEMP_STRING)
 
@@ -145,8 +148,8 @@ class Service(SimpleService):
         return self._parse_xilinx_fpgainfo(FPGA_TEMPERATURE_CMD, RE_TEMP_STRING)
 
 
-    def _get_intel_fpga_power(self):
-        FPGA_POWER_CMD = self.intel_cmd + " power"
+    def _get_intel_fpga_power(self, idx):
+        FPGA_POWER_CMD = self.intel_cmd + " power --device " + str(idx)
         RE_POWER_STRING = r'^.*Total Input Power \s+: (\d+)\.'
         return self._parse_intel_fpgainfo(FPGA_POWER_CMD, RE_POWER_STRING)
 
@@ -159,14 +162,14 @@ class Service(SimpleService):
 
     def _get_fpga_temp(self, idx):
         if os.path.exists(self.intel_cmd) and os.access(self.intel_cmd, os.X_OK):
-            return self._get_intel_fpga_temp()
+            return self._get_intel_fpga_temp(idx)
         if os.path.exists(self.xilinx_cmd) and os.access(self.xilinx_cmd, os.X_OK):
             return self._get_xilinx_fpga_temp(idx)
 
 
     def _get_fpga_power(self, idx):
         if os.path.exists(self.intel_cmd):
-            return self._get_intel_fpga_power()
+            return self._get_intel_fpga_power(idx)
         if os.path.exists(self.xilinx_cmd):
             return self._get_xilinx_fpga_power(idx)
 
