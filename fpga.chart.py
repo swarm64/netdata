@@ -15,8 +15,6 @@ import os
 
 priority = 90000
 
-FPGA_COUNT = 2
-
 DEFINITIONS = {
     'bytes': {
         'options': [None, 'Transfered data', 'MB/sec', 'fpga', 'fpga', 'line'],
@@ -62,10 +60,11 @@ class Service(SimpleService):
         self.next_fpga = 0
         self.intel_cmd = self.configuration.get('intel_cmd')
         self.xilinx_cmd = self.configuration.get('xilinx_cmd')
+        self.fpga_count = self.configuration.get('fpga_count')
         self.dsn = self.configuration.get('dsn')
         self.metrics = [ 'bytes', 'jobs', 'max', 'temps', 'powers' ]
 
-        for i in range(FPGA_COUNT):
+        for i in range(self.fpga_count):
             name = 'fpga-' + str(i)
 
             for metric in self.metrics:
@@ -155,9 +154,9 @@ class Service(SimpleService):
 
 
     def _get_xilinx_fpga_power(self, idx):
-        FPGA_TEMPERATURE_CMD = self.xilinx_cmd + " query -d " + str(idx)
-        RE_TEMP_STRING = r'Card Power'
-        return self._parse_xilinx_fpgainfo(FPGA_TEMPERATURE_CMD, RE_TEMP_STRING)
+        FPGA_POWER_CMD = self.xilinx_cmd + " query -d " + str(idx)
+        RE_POWER_STRING = r'Card Power'
+        return self._parse_xilinx_fpgainfo(FPGA_POWER_CMD, RE_POWER_STRING)
 
 
     def _get_fpga_temp(self, idx):
@@ -168,13 +167,14 @@ class Service(SimpleService):
 
 
     def _get_fpga_power(self, idx):
-        if os.path.exists(self.intel_cmd):
+        if os.path.exists(self.intel_cmd) and os.access(self.intel_cmd, os.X_OK):
             return self._get_intel_fpga_power(idx)
-        if os.path.exists(self.xilinx_cmd):
+        if os.path.exists(self.xilinx_cmd) and os.access(self.xilinx_cmd, os.X_OK):
             return self._get_xilinx_fpga_power(idx)
 
+
     def set_fpga_os_status(self, data):
-        for idx in range(FPGA_COUNT):
+        for idx in range(self.fpga_count):
             temp_name = 'fpga-' + str(idx) + '-temperature'
             power_name = 'fpga-' + str(idx) + '-power'
             data[temp_name] = self._get_fpga_temp(idx)
