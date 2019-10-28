@@ -60,7 +60,7 @@ class Service(SimpleService):
         self.next_fpga = 0
         self.intel_cmd = self.configuration.get('intel_cmd')
         self.xilinx_cmd = self.configuration.get('xilinx_cmd')
-        self.fpga_count = self.configuration.get('fpga_count')
+        self.fpga_count = 1
         self.dsn = self.configuration.get('dsn')
         self.metrics = [ 'bytes', 'jobs', 'max', 'temps', 'powers' ]
 
@@ -72,6 +72,8 @@ class Service(SimpleService):
 
         for key in self.keys:
             self.default_data[key] = 0
+
+        self._get_connection()
 
     def init_fpga_metrics(self, component, name):
         component_name = name + '-' + component
@@ -102,6 +104,13 @@ class Service(SimpleService):
 
         return True
 
+    def _get_connection(self):
+        if not self.conn:
+            self._connect(self.dsn)
+
+        with self.conn.cursor() as cursor:
+            cursor.execute('SELECT COUNT(*) FROM swarm64da.get_fpga_stats()')
+            self.fpga_count = cursor.fetchone()[0]
 
     def _parse_intel_fpgainfo(self, cmd, re_string):
         try:
@@ -182,11 +191,8 @@ class Service(SimpleService):
 
 
     def get_data(self):
-        self._connect(self.dsn)
-
         # It might be that no connection could be established at all
-        if not self.conn:
-            return self.default_data
+        self._get_connection()
 
 
         try:
