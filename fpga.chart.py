@@ -96,7 +96,8 @@ class Service(SimpleService):
             self.conn = psycopg2.connect(dsn)
             self.conn.autocommit = True
             with self.conn.cursor() as cursor:
-                cursor.execute('CREATE EXTENSION IF NOT EXISTS swarm64da')
+                cursor.execute('SELECT COUNT(*) FROM swarm64da.get_fpga_stats()')
+                self.fpga_count = cursor.fetchone()[0]
 
         except Exception:
             self.conn = None
@@ -104,13 +105,16 @@ class Service(SimpleService):
 
         return True
 
+
     def _get_connection(self):
         if not self.conn:
             self._connect(self.dsn)
 
-        with self.conn.cursor() as cursor:
-            cursor.execute('SELECT COUNT(*) FROM swarm64da.get_fpga_stats()')
-            self.fpga_count = cursor.fetchone()[0]
+        if self.conn.status != 1:
+            self.conn.close()
+            self.conn = None
+            self._connect(self.dsn)
+
 
     def _parse_intel_fpgainfo(self, cmd, re_string):
         try:
