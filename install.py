@@ -3,6 +3,7 @@
 import re
 import os
 import subprocess
+import shutil
 
 
 CHART_DIR = '/usr/ibexec/netdata/python.d'
