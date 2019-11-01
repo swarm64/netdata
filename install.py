@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
-import re
 import os
-import subprocess
 import shutil
 import argparse
 
@@ -10,49 +8,15 @@ import argparse
 CHART = './fpga.chart.py'
 CONF = './fpga.conf'
 
-
-def get_flavour():
-    flavour_line = subprocess.check_output('cat /etc/os-release | grep -E \'^NAME="\'', shell=True)
-    flavour = re.match(r'^NAME=\"(\w+)', flavour_line.decode('UTF-8'))
-
-    return flavour.group(1)
-
-def check_for_package(cmd):
-    try:
-        DEVNULL = open(os.devnull, 'w')
-        out = subprocess.check_output(cmd + ' | grep netdata', stderr=DEVNULL, shell=True)
-        DEVNULL.close()
-        return True
-    except subprocess.CalledProcessError as exc:
-        return False
-
-def check_for_command_line_install():
-    if os.path.isdir(args.netdata_dir) and len(os.listdir(args.netdata_dir)) > 0:
-        return True
-    else:
-        return False
-
-def netdata_is_installed(linux_flavour):
-    if linux_flavour == "Debian":
-        cmd = 'dpkg -l | grep netdata'
-        return check_for_package(cmd) or check_for_command_line_install()
-    elif linux_flavour == "CentOS":
-        cmd = 'yum list installed | grep netdata'
-        return check_for_package(cmd) or check_for_command_line_install()
-    else:
-        print("Supported Linux flavour not in use")
-        return False
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Get possible non-default paths for config and driver')
     parser.add_argument('--config', default='/etc/netdata/python.d', help='Where the netdata config file is located')
     parser.add_argument('--python-chart', default='/usr/libexec/netdata/python.d', help='Where the python chart file is located')
-    parser.add_argument('--netdata-dir', default='/opt/netdata/', help='Where Netdata is installed if not in a standard location')
     args = parser.parse_args()
 
-    linux_flavour = get_flavour()
+    netdata_bin = shutil.which('netdata')
 
-    if netdata_is_installed(linux_flavour):
+    if netdata_bin is not None and os.stat(netdata_bin).st_uid == 0:
         if os.path.isdir(args.python_chart):
             shutil.copy(CHART, args.python_chart)
         else:
