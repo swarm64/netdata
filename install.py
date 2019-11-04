@@ -17,8 +17,8 @@ if __name__ == '__main__':
 
     netdata_bin = shutil.which('netdata')
     login_user = os.getlogin()
-    chart_path = args.python_chart + '/' + CHART
-    conf_path = args.config + '/' + CONF
+    chart_path = os.path.join(args.python_chart, CHART)
+    conf_path = os.path.join(args.config, CONF)
 
     if netdata_bin is not None and login_user == 'root':
         if os.path.isdir(args.python_chart) and os.path.isdir(args.config):
