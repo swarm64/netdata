@@ -27,10 +27,10 @@ if __name__ == '__main__':
             else:
                 shutil.copy(CHART, args.python_chart)
                 shutil.copy(CONF, args.config)
+                print("Please restart netdata now that the scripts have been installed.")
 
         else:
             print("Couldn't copy files to desired directories. Make sure that {} and {} exist".format(args.python_chart, args.config))
 
     else:
         print("Please check that Netdata is installed and run this script as root")
-
