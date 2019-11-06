@@ -73,7 +73,11 @@ class Service(SimpleService):
         for key in self.keys:
             self.default_data[key] = 0
 
-        self._connect(self.dsn)
+        self.conn = self._connect(self.dsn)
+        with self.conn.cursor() as cursor:
+            cursor.execute('CREATE EXTENSION IF NOT EXISTS swarm64da')
+            cursor.execute('SELECT COUNT(*) FROM swarm64da.get_fpga_stats()')
+            self.fpga_count = cursor.fetchone()[0]
 
     def init_fpga_metrics(self, component, name):
         component_name = name + '-' + component
@@ -96,15 +100,11 @@ class Service(SimpleService):
             try:
                 self.conn = psycopg2.connect(dsn)
                 self.conn.autocommit = True
-                with self.conn.cursor() as cursor:
-                    cursor.execute('SELECT COUNT(*) FROM swarm64da.get_fpga_stats()')
-                    self.fpga_count = cursor.fetchone()[0]
 
             except Exception:
                 self.conn = None
-                return False
 
-            return True
+        return self.conn
 
 
     def _parse_intel_fpgainfo(self, cmd, re_string):
@@ -187,8 +187,7 @@ class Service(SimpleService):
 
     def get_data(self):
         # It might be that no connection could be established at all
-        self._connect(self.dsn)
-
+        self.conn = self._connect(self.dsn)
 
         try:
             data = copy.deepcopy(self.default_data)
