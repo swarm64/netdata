@@ -97,12 +97,8 @@ class Service(SimpleService):
 
     def _connect(self, dsn):
         if not self.conn:
-            try:
-                self.conn = psycopg2.connect(dsn)
-                self.conn.autocommit = True
-
-            except Exception:
-                self.conn = None
+            self.conn = psycopg2.connect(dsn)
+            self.conn.autocommit = True
 
         return self.conn
 
