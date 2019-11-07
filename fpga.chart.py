@@ -96,15 +96,14 @@ class Service(SimpleService):
         return True
 
     def _connect(self, dsn):
-        if not self.conn:
-            try:
-                self.conn = psycopg2.connect(dsn)
-                self.conn.autocommit = True
+        try:
+            conn = psycopg2.connect(dsn)
+            conn.autocommit = True
 
-            except Exception:
-                self.conn = None
+        except Exception:
+            conn = None
 
-        return self.conn
+        return conn
 
 
     def _parse_intel_fpgainfo(self, cmd, re_string):
@@ -187,7 +186,8 @@ class Service(SimpleService):
 
     def get_data(self):
         # It might be that no connection could be established at all
-        self.conn = self._connect(self.dsn)
+        if self.conn is None:
+            self.conn = self._connect(self.dsn)
 
         try:
             data = copy.deepcopy(self.default_data)
