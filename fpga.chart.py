@@ -64,6 +64,12 @@ class Service(SimpleService):
         self.dsn = self.configuration.get('dsn')
         self.metrics = [ 'bytes', 'jobs', 'max', 'temps', 'powers' ]
 
+        conn = self._connect(self.dsn)
+        with conn.cursor() as cursor:
+            cursor.execute('CREATE EXTENSION IF NOT EXISTS swarm64da')
+            cursor.execute('SELECT COUNT(*) FROM swarm64da.get_fpga_stats()')
+            self.fpga_count = cursor.fetchone()[0]
+
         for i in range(self.fpga_count):
             name = 'fpga-' + str(i)
 
@@ -72,12 +78,6 @@ class Service(SimpleService):
 
         for key in self.keys:
             self.default_data[key] = 0
-
-        conn = self._connect(self.dsn)
-        with conn.cursor() as cursor:
-            cursor.execute('CREATE EXTENSION IF NOT EXISTS swarm64da')
-            cursor.execute('SELECT COUNT(*) FROM swarm64da.get_fpga_stats()')
-            self.fpga_count = cursor.fetchone()[0]
 
     def init_fpga_metrics(self, component, name):
         component_name = name + '-' + component
