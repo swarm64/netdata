@@ -20,7 +20,7 @@ Please run the script with `--help` to see this usage.
 The script will not overwrite existing Swarm64 scripts that happen to be in the locations specified unless the
 `--force` option is specified. This is also detailed with the running of `--help`.
 
-If the Swarm64da extension is not already loaded into the target PostgreSQL database, the script will do it
+If the Swarm64 DA extension is not already loaded into the target PostgreSQL database, the script will do it
 in order to get the statistics. The chart script attempts to connect to the database so please ensure the 
 configuration information in the fpga.conf file is correct for the database in question.
 Once the scripts are successfully installed please restart Netdata in order to see the FPGA statistics displayed.
