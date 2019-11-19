@@ -66,7 +66,7 @@ class Service(SimpleService):
         self.metrics = [ 'bytes', 'jobs', 'max' ]
 
         if self.check_temp_power:
-            self.metrics.extend([ 'bytes', 'jobs', 'max', 'temps', 'powers' ])
+            self.metrics.extend([ 'temps', 'powers' ])
 
         conn = self._connect(self.dsn)
         with conn.cursor() as cursor:
