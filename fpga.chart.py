@@ -63,11 +63,10 @@ class Service(SimpleService):
         self.fpga_count = 1
         self.dsn = self.configuration.get('dsn')
         self.check_temp_power = self.configuration.get('check_temp_power')
+        self.metrics = [ 'bytes', 'jobs', 'max' ]
 
-        if self.check_temp_power is True:
-            self.metrics = [ 'bytes', 'jobs', 'max', 'temps', 'powers' ]
-        else:
-            self.metrics = [ 'bytes', 'jobs', 'max' ]
+        if self.check_temp_power:
+            self.metrics.extend([ 'bytes', 'jobs', 'max', 'temps', 'powers' ])
 
         conn = self._connect(self.dsn)
         with conn.cursor() as cursor:
@@ -192,7 +191,7 @@ class Service(SimpleService):
 
         try:
             data = copy.deepcopy(self.default_data)
-            if self.check_temp_power is True:
+            if self.check_temp_power:
                 self.set_fpga_os_status(data)
 
 
