@@ -62,7 +62,11 @@ class Service(SimpleService):
         self.xilinx_cmd = self.configuration.get('xilinx_cmd')
         self.fpga_count = 1
         self.dsn = self.configuration.get('dsn')
-        self.metrics = [ 'bytes', 'jobs', 'max', 'temps', 'powers' ]
+        self.check_temp_power = self.configuration.get('check_temp_power')
+        self.metrics = [ 'bytes', 'jobs', 'max' ]
+
+        if self.check_temp_power:
+            self.metrics.extend([ 'temps', 'powers' ])
 
         conn = self._connect(self.dsn)
         with conn.cursor() as cursor:
@@ -187,7 +191,8 @@ class Service(SimpleService):
 
         try:
             data = copy.deepcopy(self.default_data)
-            self.set_fpga_os_status(data)
+            if self.check_temp_power:
+                self.set_fpga_os_status(data)
 
 
             with conn.cursor() as cursor:
