@@ -12,6 +12,8 @@ import copy
 import subprocess
 import re
 import os
+import time
+import threading
 
 priority = 90000
 
@@ -63,10 +65,17 @@ class Service(SimpleService):
         self.fpga_count = 1
         self.dsn = self.configuration.get('dsn')
         self.check_temp_power = self.configuration.get('check_temp_power')
+        self.temp = None
+        self.power = None
         self.metrics = [ 'bytes', 'jobs', 'max' ]
 
         if self.check_temp_power:
             self.metrics.extend([ 'temps', 'powers' ])
+
+        if self.update_every < 10:
+            self.temp_power_update_interval = 10
+        else:
+            self.temp_power_update_interval = self.update_every
 
         conn = self._connect(self.dsn)
         with conn.cursor() as cursor:
@@ -82,6 +91,11 @@ class Service(SimpleService):
 
         for key in self.keys:
             self.default_data[key] = 0
+
+        self.os_thread = threading.Thread(target=self.get_fpga_os_status, args=())
+        self.os_thread.daemon = True
+        self.os_thread.start()
+
 
     def init_fpga_metrics(self, component, name):
         component_name = name + '-' + component
@@ -177,12 +191,20 @@ class Service(SimpleService):
             return self._get_xilinx_fpga_power(idx)
 
 
+    def get_fpga_os_status(self):
+        while True:
+            time.sleep(self.temp_power_update_interval)
+            for idx in range(self.fpga_count):
+                self.temp = self._get_fpga_temp(idx)
+                self.power = self._get_fpga_power(idx)
+
+
     def set_fpga_os_status(self, data):
         for idx in range(self.fpga_count):
             temp_name = 'fpga-' + str(idx) + '-temperature'
             power_name = 'fpga-' + str(idx) + '-power'
-            data[temp_name] = self._get_fpga_temp(idx)
-            data[power_name] = self._get_fpga_power(idx)
+            data[temp_name] = self.temp
+            data[power_name] = self.power
 
 
     def get_data(self):
