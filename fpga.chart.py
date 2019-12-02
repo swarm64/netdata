@@ -65,8 +65,8 @@ class Service(SimpleService):
         self.fpga_count = 1
         self.dsn = self.configuration.get('dsn')
         self.check_temp_power = self.configuration.get('check_temp_power')
-        self.temp = None
-        self.power = None
+        self.temp = []
+        self.power = []
         self.metrics = [ 'bytes', 'jobs', 'max' ]
 
         if self.check_temp_power:
@@ -84,6 +84,8 @@ class Service(SimpleService):
             self.fpga_count = cursor.fetchone()[0]
 
         for i in range(self.fpga_count):
+            self.temp.append(0)
+            self.power.append(0)
             name = 'fpga-' + str(i)
 
             for metric in self.metrics:
@@ -179,32 +181,37 @@ class Service(SimpleService):
 
     def _get_fpga_temp(self, idx):
         if os.path.exists(self.intel_cmd) and os.access(self.intel_cmd, os.X_OK):
-            return self._get_intel_fpga_temp(idx)
+            self.temp[idx] = self._get_intel_fpga_temp(idx)
+            return
         if os.path.exists(self.xilinx_cmd) and os.access(self.xilinx_cmd, os.X_OK):
-            return self._get_xilinx_fpga_temp(idx)
+            self.temp[idx] = self._get_xilinx_fpga_temp(idx)
+            return
 
 
     def _get_fpga_power(self, idx):
         if os.path.exists(self.intel_cmd) and os.access(self.intel_cmd, os.X_OK):
-            return self._get_intel_fpga_power(idx)
+            self.power[idx] = self._get_intel_fpga_power(idx)
+            return
         if os.path.exists(self.xilinx_cmd) and os.access(self.xilinx_cmd, os.X_OK):
-            return self._get_xilinx_fpga_power(idx)
+            self.power[idx] = self._get_xilinx_fpga_power(idx)
+            return
 
 
     def get_fpga_os_status(self):
+        result_dict = {'result': '0'}
         while True:
-            time.sleep(self.temp_power_update_interval)
+            time.sleep(2)
             for idx in range(self.fpga_count):
-                self.temp = self._get_fpga_temp(idx)
-                self.power = self._get_fpga_power(idx)
+                threading.Thread(target=self._get_fpga_temp(idx)).start()
+                threading.Thread(target=self._get_fpga_power(idx)).start()
 
 
     def set_fpga_os_status(self, data):
         for idx in range(self.fpga_count):
             temp_name = 'fpga-' + str(idx) + '-temperature'
             power_name = 'fpga-' + str(idx) + '-power'
-            data[temp_name] = self.temp
-            data[power_name] = self.power
+            data[temp_name] = self.temp[idx]
+            data[power_name] = self.power[idx]
 
 
     def get_data(self):
