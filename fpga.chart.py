@@ -72,10 +72,7 @@ class Service(SimpleService):
         if self.check_temp_power:
             self.metrics.extend([ 'temps', 'powers' ])
 
-        if self.update_every < 10:
-            self.temp_power_update_interval = 10
-        else:
-            self.temp_power_update_interval = self.update_every
+        self.temp_power_update_interval = 10 if self.update_every < 10 else self.update_every
 
         conn = self._connect(self.dsn)
         with conn.cursor() as cursor:
@@ -200,7 +197,7 @@ class Service(SimpleService):
     def get_fpga_os_status(self):
         result_dict = {'result': '0'}
         while True:
-            time.sleep(2)
+            time.sleep(self.temp_power_update_interval - 2)
             for idx in range(self.fpga_count):
                 threading.Thread(target=self._get_fpga_temp(idx)).start()
                 threading.Thread(target=self._get_fpga_power(idx)).start()
