@@ -91,9 +91,12 @@ class Service(SimpleService):
         for key in self.keys:
             self.default_data[key] = 0
 
-        self.os_thread = threading.Thread(target=self.get_fpga_os_status, args=())
-        self.os_thread.daemon = True
-        self.os_thread.start()
+        self.temp_thread = threading.Thread(target=self._get_fpga_temp, args=())
+        self.power_thread = threading.Thread(target=self._get_fpga_power, args=())
+        self.temp_thread.daemon = True
+        self.power_thread.daemon = True
+        self.temp_thread.start()
+        self.power_thread.start()
 
 
     def init_fpga_metrics(self, component, name):
@@ -176,31 +179,28 @@ class Service(SimpleService):
         return self._parse_xilinx_fpgainfo(FPGA_POWER_CMD, RE_POWER_STRING)
 
 
-    def _get_fpga_temp(self, idx):
-        if os.path.exists(self.intel_cmd) and os.access(self.intel_cmd, os.X_OK):
-            self.temp[idx] = self._get_intel_fpga_temp(idx)
-            return
-        if os.path.exists(self.xilinx_cmd) and os.access(self.xilinx_cmd, os.X_OK):
-            self.temp[idx] = self._get_xilinx_fpga_temp(idx)
-            return
-
-
-    def _get_fpga_power(self, idx):
-        if os.path.exists(self.intel_cmd) and os.access(self.intel_cmd, os.X_OK):
-            self.power[idx] = self._get_intel_fpga_power(idx)
-            return
-        if os.path.exists(self.xilinx_cmd) and os.access(self.xilinx_cmd, os.X_OK):
-            self.power[idx] = self._get_xilinx_fpga_power(idx)
-            return
-
-
-    def get_fpga_os_status(self):
-        result_dict = {'result': '0'}
+    def _get_fpga_temp(self):
         while True:
             time.sleep(self.temp_power_update_interval - 2)
             for idx in range(self.fpga_count):
-                threading.Thread(target=self._get_fpga_temp(idx)).start()
-                threading.Thread(target=self._get_fpga_power(idx)).start()
+                if os.path.exists(self.intel_cmd) and os.access(self.intel_cmd, os.X_OK):
+                    self.temp[idx] = self._get_intel_fpga_temp(idx)
+                    continue
+                if os.path.exists(self.xilinx_cmd) and os.access(self.xilinx_cmd, os.X_OK):
+                    self.temp[idx] = self._get_xilinx_fpga_temp(idx)
+                    continue
+
+
+    def _get_fpga_power(self):
+        while True:
+            time.sleep(self.temp_power_update_interval - 2)
+            for idx in range(self.fpga_count):
+                if os.path.exists(self.intel_cmd) and os.access(self.intel_cmd, os.X_OK):
+                    self.power[idx] = self._get_intel_fpga_power(idx)
+                    continue
+                if os.path.exists(self.xilinx_cmd) and os.access(self.xilinx_cmd, os.X_OK):
+                    self.power[idx] = self._get_xilinx_fpga_power(idx)
+                    continue
 
 
     def set_fpga_os_status(self, data):
