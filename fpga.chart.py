@@ -91,8 +91,8 @@ class Service(SimpleService):
         for key in self.keys:
             self.default_data[key] = 0
 
-        self.temp_thread = threading.Thread(target=self._get_fpga_temp, args=())
-        self.power_thread = threading.Thread(target=self._get_fpga_power, args=())
+        self.temp_thread = threading.Thread(target=self._get_fpga_temp)
+        self.power_thread = threading.Thread(target=self._get_fpga_power)
         self.temp_thread.daemon = True
         self.power_thread.daemon = True
         self.temp_thread.start()
