@@ -14,6 +14,7 @@ import re
 import os
 import time
 import threading
+from functools import wraps
 
 priority = 90000
 
@@ -184,42 +185,33 @@ class Service(SimpleService):
         return self._parse_xilinx_fpgainfo(FPGA_POWER_CMD, RE_POWER_STRING)
 
 
+    def time_lag(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            while True:
+                before = time.time()
+                func(self, *args, **kwargs)
+                after = time.time()
+                loop_time = self.temp_power_update_interval - (after - before)
+
+                if loop_time >= 0:
+                    time.sleep(loop_time)
+                else:
+                    time.sleep(self.temp_power_update_interval + loop_time)
+
+        return wrapper
+
+
+    @time_lag
     def _get_fpga_temp(self):
-        lag = 0
-        while True:
-            before = time.time()
-            for idx in range(self.fpga_count):
-                self.temp[idx] = self.get_fpga_temp_func(idx)
-            after = time.time()
-            loop_time = self.temp_power_update_interval - (after - before)
-
-            if loop_time >= 0:
-                time.sleep(loop_time)
-            else:
-                lag += abs(loop_time)
-
-            if lag > self.temp_power_update_interval:
-                time.sleep(lag)
-                lag = 0
+        for idx in range(self.fpga_count):
+            self.temp[idx] = self.get_fpga_temp_func(idx)
 
 
+    @time_lag
     def _get_fpga_power(self):
-        lag = 0
-        while True:
-            before = time.time()
-            for idx in range(self.fpga_count):
-                self.power[idx] = self.get_fpga_power_func(idx)
-            after = time.time()
-            loop_time = self.temp_power_update_interval - (after - before)
-
-            if loop_time >= 0:
-                time.sleep(loop_time)
-            else:
-                lag += abs(loop_time)
-
-            if lag > self.temp_power_update_interval:
-                time.sleep(lag)
-                lag = 0
+        for idx in range(self.fpga_count):
+            self.power[idx] = self.get_fpga_power_func(idx)
 
 
     def set_fpga_os_status(self, data):
