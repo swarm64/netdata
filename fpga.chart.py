@@ -12,6 +12,9 @@ import copy
 import subprocess
 import re
 import os
+import time
+import threading
+from functools import wraps
 
 priority = 90000
 
@@ -63,10 +66,21 @@ class Service(SimpleService):
         self.fpga_count = 1
         self.dsn = self.configuration.get('dsn')
         self.check_temp_power = self.configuration.get('check_temp_power')
+        self.temp = []
+        self.power = []
         self.metrics = [ 'bytes', 'jobs', 'max' ]
+
+        if os.path.exists(self.intel_cmd) and os.access(self.intel_cmd, os.X_OK):
+            self.get_fpga_temp_func = self._get_intel_fpga_temp
+            self.get_fpga_power_func = self._get_intel_fpga_power
+        elif os.path.exists(self.xilinx_cmd) and os.access(self.xilinx_cmd, os.X_OK):
+            self.get_fpga_temp_func = self._get_xilinx_fpga_temp
+            self.get_fpga_power_func = self._get_xilinx_fpga_power
 
         if self.check_temp_power:
             self.metrics.extend([ 'temps', 'powers' ])
+
+        self.temp_power_update_interval = 10 if self.update_every < 10 else self.update_every
 
         conn = self._connect(self.dsn)
         with conn.cursor() as cursor:
@@ -75,6 +89,8 @@ class Service(SimpleService):
             self.fpga_count = cursor.fetchone()[0]
 
         for i in range(self.fpga_count):
+            self.temp.append(0)
+            self.power.append(0)
             name = 'fpga-' + str(i)
 
             for metric in self.metrics:
@@ -82,6 +98,12 @@ class Service(SimpleService):
 
         for key in self.keys:
             self.default_data[key] = 0
+
+        for func in [ self._get_fpga_temp, self._get_fpga_power ]:
+            thread = threading.Thread(target=func)
+            thread.daemon = True
+            thread.start()
+
 
     def init_fpga_metrics(self, component, name):
         component_name = name + '-' + component
@@ -163,26 +185,41 @@ class Service(SimpleService):
         return self._parse_xilinx_fpgainfo(FPGA_POWER_CMD, RE_POWER_STRING)
 
 
-    def _get_fpga_temp(self, idx):
-        if os.path.exists(self.intel_cmd) and os.access(self.intel_cmd, os.X_OK):
-            return self._get_intel_fpga_temp(idx)
-        if os.path.exists(self.xilinx_cmd) and os.access(self.xilinx_cmd, os.X_OK):
-            return self._get_xilinx_fpga_temp(idx)
+    def time_lag(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            while True:
+                before = time.time()
+                func(self, *args, **kwargs)
+                after = time.time()
+                loop_time = self.temp_power_update_interval - (after - before)
+
+                if loop_time >= 0:
+                    time.sleep(loop_time)
+                else:
+                    time.sleep(self.temp_power_update_interval + loop_time)
+
+        return wrapper
 
 
-    def _get_fpga_power(self, idx):
-        if os.path.exists(self.intel_cmd) and os.access(self.intel_cmd, os.X_OK):
-            return self._get_intel_fpga_power(idx)
-        if os.path.exists(self.xilinx_cmd) and os.access(self.xilinx_cmd, os.X_OK):
-            return self._get_xilinx_fpga_power(idx)
+    @time_lag
+    def _get_fpga_temp(self):
+        for idx in range(self.fpga_count):
+            self.temp[idx] = self.get_fpga_temp_func(idx)
+
+
+    @time_lag
+    def _get_fpga_power(self):
+        for idx in range(self.fpga_count):
+            self.power[idx] = self.get_fpga_power_func(idx)
 
 
     def set_fpga_os_status(self, data):
         for idx in range(self.fpga_count):
             temp_name = 'fpga-' + str(idx) + '-temperature'
             power_name = 'fpga-' + str(idx) + '-power'
-            data[temp_name] = self._get_fpga_temp(idx)
-            data[power_name] = self._get_fpga_power(idx)
+            data[temp_name] = self.temp[idx]
+            data[power_name] = self.power[idx]
 
 
     def get_data(self):
