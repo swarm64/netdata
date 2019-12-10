@@ -77,9 +77,6 @@ class Service(SimpleService):
             self.get_fpga_temp_func = self._get_xilinx_fpga_temp
             self.get_fpga_power_func = self._get_xilinx_fpga_power
 
-        if self.check_temp_power:
-            self.metrics.extend([ 'temps', 'powers' ])
-
         self.temp_power_update_interval = 10 if self.update_every < 10 else self.update_every
 
         conn = self._connect(self.dsn)
@@ -88,13 +85,21 @@ class Service(SimpleService):
             cursor.execute('SELECT COUNT(*) FROM swarm64da.get_fpga_stats()')
             self.fpga_count = cursor.fetchone()[0]
 
+        if self.fpga_count > 1:
+            for metric in self.metrics:
+                self.init_fpga_metrics(metric, 'fpga-total')
+
         for i in range(self.fpga_count):
             self.temp.append(0)
             self.power.append(0)
             name = 'fpga-' + str(i)
 
+            if self.check_temp_power:
+                self.metrics.extend([ 'temps', 'powers' ])
+
             for metric in self.metrics:
                 self.init_fpga_metrics(metric, name)
+
 
         for key in self.keys:
             self.default_data[key] = 0
@@ -253,10 +258,12 @@ class Service(SimpleService):
 
                     for column in cursor.description:
                         name = fpga_key + '-' + column.name
+                        if self.fpga_count > 1:
+                            tot_name = 'fpga-total-' + column.name
                         if name in self.keys:
                             data[name] = row[columns[column.name]]
-
-
+                            if self.fpga_count > 1:
+                                data[tot_name] += row[columns[column.name]]
 
                 return data
 
