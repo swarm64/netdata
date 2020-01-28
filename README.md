@@ -1,12 +1,11 @@
 # Summary
 
-The configuration file and python file needed to read data from a local
-FPGA
+The configuration file and python file needed to read out and display statistics for FPGAs in the system
 
 
 # Prerequisites
 
-- psycopg2
+- Python2 package psycopg2. Install eg. with `python -m pip install psycopg2`
 
 
 # Configuration and file locations
@@ -21,6 +20,6 @@ The script will not overwrite existing Swarm64 scripts that happen to be in the 
 `--force` option is specified. This is also detailed with the running of `--help`.
 
 If the Swarm64 DA extension is not already loaded into the target PostgreSQL database, the script will do it
-in order to get the statistics. The chart script attempts to connect to the database so please ensure the 
-configuration information in the fpga.conf file is correct for the database in question.
-Once the scripts are successfully installed please restart Netdata in order to see the FPGA statistics displayed.
+in order to get the statistics. The chart script attempts to connect to the database. You therefore have to ensure the 
+configuration information in the `fpga.conf` file is correct for the database in question.
+Once the scripts are successfully installed restart Netdata in order to see the FPGA statistics displayed.
