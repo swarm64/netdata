@@ -5,7 +5,7 @@ The configuration file and python file needed to read out and display statistics
 
 # Prerequisites
 
-- Python2 package _psycopg2_. Install eg. with `python -m pip install psycopg2`
+- Python package _psycopg2_. Install eg. with `yum install python-psycopg2`
 
 
 # Configuration and file locations
