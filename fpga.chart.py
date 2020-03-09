@@ -39,6 +39,24 @@ DEFINITIONS = {
                   ['max_outstanding_filter_jobs', 'filter', 'absolute']
                  ]
     },
+    'pu_stats': {
+        'options': [None, 'PUs utilisation', 'PU utilised', 'fpga', 'fpga', 'line'],
+        'lines': [['current_pu_utilised_comp_percent', 'current compress PUs (%)', 'absolute'],
+                  ['current_pu_utilised_decomp_percent', 'current decompress PUs (%)', 'absolute'],
+                  ['avg_pu_utilised_comp_percent', 'avg compress PUs (%)', 'absolute'],
+                  ['avg_pu_utilised_decomp_percent', 'avg decompress PUs (%)', 'absolute'],
+                  ['max_pu_utilised_comp', 'max. compress PUs', 'absolute'],
+                  ['max_pu_utilised_decomp', 'max. decompress PUs', 'absolute']
+                 ]
+    },
+    'ddr_stats': {
+        'options': [None, 'Successful and denied DDR transfers', 'Transfers', 'fpga', 'fpga', 'line'],
+        'lines': [['avg_memory_write_transactions_percent', 'successful write transfers (%)', 'absolute'],
+                  ['avg_memory_read_transactions_percent', 'successful read transfers (%)', 'absolute'],
+                  ['avg_memory_write_denied_percent', 'denied write transfers (%)', 'absolute'],
+                  ['avg_memory_read_denied_percent', 'denied read transfers (%)', 'absolute']
+                 ]
+    },
     'temps': {
         'options': [None, 'FPGA Temperature', '°C', 'fpga', 'fpga', 'line'],
         'lines': [['temperature', 'Degrees Celcius', 'absolute']
@@ -66,6 +84,7 @@ class Service(SimpleService):
         self.fpga_count = 1
         self.dsn = self.configuration.get('dsn')
         self.check_temp_power = self.configuration.get('check_temp_power')
+        self.pu_ddr_stats_enable = self.configuration.get('pu_ddr_stats_enable')
         self.temp = []
         self.power = []
         self.metrics = [ 'bytes', 'jobs', 'max' ]
@@ -93,6 +112,9 @@ class Service(SimpleService):
             self.temp.append(0)
             self.power.append(0)
             name = 'fpga-' + str(i)
+
+            if self.pu_ddr_stats_enable:
+                self.metrics.extend([ 'pu_stats', 'ddr_stats' ])
 
             if self.check_temp_power:
                 self.metrics.extend([ 'temps', 'powers' ])
@@ -262,8 +284,11 @@ class Service(SimpleService):
                             tot_name = 'fpga-total-' + column.name
                         if name in self.keys:
                             data[name] = row[columns[column.name]]
-                            if self.fpga_count > 1:
-                                data[tot_name] += row[columns[column.name]]
+			    if self.fpga_count > 1:
+		                if 'percent' in name:
+                                    data[tot_name] += row[columns[column.name]]/self.fpga_count
+			        else:
+                                    data[tot_name] += row[columns[column.name]]
 
                 return data
 
