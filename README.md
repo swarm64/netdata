@@ -1,6 +1,9 @@
 # Summary
 
-The configuration file and python file needed to read out and display statistics for FPGAs in the system
+The configuration file and python file needed to read out and display statistics for FPGAs in the system.
+
+**Using the netdata plugin can cause a slowdown in the FPGA in some cases.**
+
 
 
 # Prerequisites
