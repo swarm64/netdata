@@ -143,10 +143,10 @@ class Service(SimpleService):
                             tot_name = 'fpga-total-' + column.name
                         if name in self.keys:
                             data[name] = row[columns[column.name]]
-			    if self.fpga_count > 1:
-		                if 'percent' in name:
+                            if self.fpga_count > 1:
+                                if 'percent' in name:
                                     data[tot_name] += row[columns[column.name]]/self.fpga_count
-			        else:
+                                else:
                                     data[tot_name] += row[columns[column.name]]
 
                 return data
