@@ -10,6 +10,8 @@ import psycopg2
 
 priority = 90000
 
+DIMENSION_NAME_IDX = 3
+
 DEFINITIONS = {
     'bytes': {
         'options': [None, 'Transfered data', 'MB/sec', 'fpga', 'fpga', 'line'],
@@ -65,12 +67,12 @@ class Service(SimpleService):
         SimpleService.__init__(self, configuration=configuration, name=name)
 
         self.conn = None
-        self.default_data = dict()
+        self.default_data = {}
         self.order = []
-        self.definitions = dict()
+        self.definitions = {}
         self.dsn = self.configuration.get('dsn')
 
-        self.fpga_mapping = dict()
+        self.fpga_mapping = {}
         fpga_ids = self.get_fpga_ids()
         for idx, fpga_id in enumerate(fpga_ids):
             self.fpga_mapping[fpga_id] = 'fpga-' + str(idx)
@@ -103,7 +105,7 @@ class Service(SimpleService):
         component_definition = DEFINITIONS[component]
         self.order.append(component_name)
         self.definitions[component_name] = copy.deepcopy(component_definition)
-        self.definitions[component_name]['options'][3] = name
+        self.definitions[component_name]['options'][DIMENSION_NAME_IDX] = name
 
         for dimension in self.definitions[component_name]['lines']:
             column_name = dimension[0]
